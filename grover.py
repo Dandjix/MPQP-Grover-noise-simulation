@@ -8,40 +8,17 @@ import random
 import matplotlib.pyplot as plt
 from multiTOF import multiTOF
 
-class AncilliaryDispenser():
 
-    input_qubits : int
-    nb_anciliary : int
-    given : int
-
-    def __init__(self, input_qubits : int, nb_anciliary : int):
-        self.input_qubits = input_qubits
-        self.nb_anciliary = nb_anciliary
-        self.given = 0
-
-    def dispense(self,n : int):
-        start = self.input_qubits + self.given
-        end = start + n
-
-        assert end < self.input_qubits + self.nb_anciliary, "No anciliary qubits left :("
-
-        self.given += n
-
-        return [i for i in range(start,end)]
-
-
-def add_diffusion(circuit : QCircuit, n : int, dispenser : AncilliaryDispenser):
+def add_diffusion(circuit : QCircuit, n : int, working_qubits : list[int]):
     circuit.add(Barrier())
     circuit.add([H(i) for i in range(n)])
     circuit.add(Barrier())
 
     circuit.add([X(i) for i in range(n)])
 
-    circuit.add(H(2))
-    control = [i for i in range(n-1)]
-    nb_working = 0 if len(control) == 2  else len(control) -1
-    multiTOF(circuit,control,dispenser.dispense(nb_working),n-1)
-    circuit.add(H(2))
+    circuit.add(H(n-1))
+    multiTOF(circuit,[i for i in range(n-1)],working_qubits,n-1)
+    circuit.add(H(n-1))
 
     circuit.add([X(i) for i in range(n)])
 
@@ -51,19 +28,16 @@ def add_diffusion(circuit : QCircuit, n : int, dispenser : AncilliaryDispenser):
 
 
 
-def add_oracle(circuit : QCircuit,n : int,searching : list, dispenser : AncilliaryDispenser):
+def add_oracle(circuit : QCircuit,n : int,searching : list, working_qubits : list[int]):
     circuit.add(Barrier())
     for i,q in enumerate(searching):
         if(q == 0):
             circuit.add(X(i))
     circuit.add(Barrier())
 
-    circuit.add(H(2))
-
-    control = [i for i in range(n-1)]
-    nb_working = 0 if len(control) == 2  else len(control) -1
-    multiTOF(circuit,control,dispenser.dispense(nb_working),n-1)
-    circuit.add(H(2))
+    circuit.add(H(n-1))
+    multiTOF(circuit,[i for i in range(n-1)],working_qubits,n-1)
+    circuit.add(H(n-1))
     circuit.add(Barrier())
 
     for i,q in enumerate(searching):
@@ -93,23 +67,22 @@ if __name__ == "__main__":
     nb_reps = round(math.pi/4 * math.sqrt(domain_size))
 
     #number of anciliary qubits for multiTOF
-    anciliary = 13
-
-    #data structure to keep track of used anciliaries
-    dispenser = AncilliaryDispenser(n,anciliary)
+    nb_anciliary = 0 if n == 3 else n-2
+    anciliary = [n+i for i in range(nb_anciliary)]
 
     #circuit init
-    circuit = QCircuit(n + anciliary)
+    circuit = QCircuit(n + nb_anciliary)
     circuit.add([H(i) for i in range(3)])
 
 
     for i in range(nb_reps):
-        add_oracle(circuit,n,searching,dispenser)
+        add_oracle(circuit,n,searching,anciliary)
 
-        add_diffusion(circuit,n,dispenser)
+        add_diffusion(circuit,n,anciliary)
 
     circuit.add(BasisMeasure([i for i in range(n)]))
 
     # circuit.pretty_print()
     result = run(circuit,IBMDevice.AER_SIMULATOR)
+
     result.plot()

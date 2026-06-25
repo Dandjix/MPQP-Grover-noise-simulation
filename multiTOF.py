@@ -15,7 +15,7 @@ def multiTOF(circuit : QCircuit, control_qubits : list[int], work_qubits : list[
         circuit.add(TOF([0,1],target))
         return
 
-    assert len(work_qubits) == len(control_qubits) -1, f"wrong number of work qubits, should be {len(control_qubits) -1}"
+    assert len(work_qubits) == len(control_qubits) -1, f"wrong number of work qubits, should be {len(control_qubits) -1} instead of {len(work_qubits)}"
 
     qubits = control_qubits + work_qubits + [target]
 
@@ -54,6 +54,11 @@ def multiTOF(circuit : QCircuit, control_qubits : list[int], work_qubits : list[
     
     
 if __name__ == "__main__":
-    circuit = QCircuit(11) 
-    multiTOF(circuit,[0,1,2,3],[],10)
+    circuit = QCircuit(3) 
+    multiTOF(circuit,[0,1],[],2)
+    circuit.pretty_print()
+
+
+    circuit = QCircuit(8) 
+    multiTOF(circuit,[0,1,2,3],[4,5,6],7)
     circuit.pretty_print()
